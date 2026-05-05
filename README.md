@@ -1,16 +1,25 @@
-# React + Vite 
+# HOPECMS - Hospital Operations & Patient Electronic Care Management System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 🚀 Getting Started
+1. **Clone the repo:** `git clone https://github.com/JomarAuditor/HOPECMS.git`
+2. **Install dependencies:** `npm install`
+3. **Environment Setup:** - Create a `.env` file in the root directory.
+   - Copy the keys from the pinned message in our GC.
+   - Ensure your `.env` looks like `.env.example`.
+4. **Run local server:** `npm run dev`
 
-Currently, two official plugins are available :
+## 📂 Project Structure
+- `src/pages`: All CMS module pages (Customers, Sales, etc.).
+- `src/components`: Reusable UI and Route Guards.
+- `src/lib`: Supabase client configuration.
+- `db/migrations`: SQL scripts for database seeding (M3).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🛡️ Branching Strategy
+- **main**: Production ready (Locked).
+- **dev**: Main integration branch (Locked - PR Required).
+- **feat/* / db/* / fix/*:** Individual task branches.
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## ✍️ PR Naming Convention
+All PRs must follow this format for grading:
+`M#_SPRINT 1_PR# - [branch-name] — [brief-description]`
+*Example: M2_SPRINT 1_PR1 - feat/ui-login-page — Login form setup*
