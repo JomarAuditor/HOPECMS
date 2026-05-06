@@ -7,6 +7,27 @@ function validateEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+function Field({ label, error: err, children }) {
+  return (
+    <div>
+      <label className="block text-xs font-bold tracking-widest text-gray-700 uppercase mb-2">
+        {label}
+      </label>
+      {children}
+      {err && (
+        <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8"  x2="12"    y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          {err}
+        </p>
+      )}
+    </div>
+  )
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 export default function Register() {
   const [firstName, setFirstName]           = useState('')
@@ -102,28 +123,6 @@ export default function Register() {
             Back to Sign in
           </Link>
         </div>
-      </div>
-    )
-  }
-
-  // ── helper to render a field ──────────────────────────────────────────
-  function Field({ label, error: err, children }) {
-    return (
-      <div>
-        <label className="block text-xs font-bold tracking-widest text-gray-700 uppercase mb-2">
-          {label}
-        </label>
-        {children}
-        {err && (
-          <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8"  x2="12"    y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-            {err}
-          </p>
-        )}
       </div>
     )
   }
