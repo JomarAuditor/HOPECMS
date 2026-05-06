@@ -1,45 +1,23 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import ProtectedRoute from './components/ProtectedRoute'
-import AppShell from './components/AppShell'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import AuthCallback from './pages/AuthCallback'
-import Customers from './pages/Customers'
-import Sales from './pages/Sales'
-import Products from './pages/Products'
-import Admin from './pages/Admin'
-import DeletedCustomers from './pages/DeletedCustomers'
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+// import ProtectedRoute from "./components/ProtectedRoute"; // COMMENT THIS OUT
+// import AppShell from "./components/AppShell"; // COMMENT THIS OUT
+import Login from "./pages/Login";
+// import Register from "./pages/Register"; // COMMENT THIS OUT
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-
-        {/* Protected routes — wrapped in AppShell */}
-        <Route
-          element={
-            <ProtectedRoute>
-              {(user) => <AppShell user={user} />}
-            </ProtectedRoute>
-          }
-        >
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/deleted-customers" element={<DeletedCustomers />} />
-        </Route>
-
-        {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        
+        {/* Comment out these routes because the files are missing in this branch */}
+        {/* <Route path="/register" element={<Register />} /> */}
+        
+        {/* Redirect everything else to Login for now */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
