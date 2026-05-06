@@ -1,8 +1,10 @@
+import PlaceholderPage from '../components/PlaceholderPage'
+
 export default function Products() {
   return (
-    <div className="p-8">
-      <h1 className="text-2xl font-bold">Products</h1>
-      <p>Product catalogue page - M2 will build this</p>
-    </div>
+    <PlaceholderPage
+      title="Products"
+      description="Browse and manage your product catalogue and inventory."
+    />
   )
 }
