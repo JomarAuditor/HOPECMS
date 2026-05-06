@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
 import AppShell from './components/AppShell'
+import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AuthCallback from './pages/AuthCallback'
@@ -11,6 +12,8 @@ import Admin from './pages/Admin'
 import DeletedCustomers from './pages/DeletedCustomers'
 
 function App() {
+  const { currentUser } = useAuth()
+
   return (
     <BrowserRouter>
       <Routes>
@@ -23,7 +26,7 @@ function App() {
         <Route
           element={
             <ProtectedRoute>
-              {(user) => <AppShell user={user} />}
+              <AppShell user={currentUser} />
             </ProtectedRoute>
           }
         >
