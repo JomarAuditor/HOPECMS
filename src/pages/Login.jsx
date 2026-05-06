@@ -14,13 +14,28 @@ export default function Login() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      navigate('/customers')
+      return
     }
+
+    // ── LOGIN GUARD: check record_status = 'ACTIVE' ──
+    const { data: userRow } = await supabase
+      .from('user')
+      .select('record_status')
+      .eq('auth_uid', data.user.id)
+      .single()
+
+    if (!userRow || userRow.record_status.trim() !== 'ACTIVE') {
+      await supabase.auth.signOut()
+      setError('Your account is pending activation. Contact your administrator.')
+      setLoading(false)
+      return
+    }
+
+    navigate('/customers')
   }
 
   async function handleGoogleSignIn() {

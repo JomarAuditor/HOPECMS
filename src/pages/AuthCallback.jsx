@@ -7,14 +7,45 @@ export default function AuthCallback() {
 
   useEffect(() => {
     async function handleCallback() {
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const code = new URLSearchParams(window.location.search).get("code");
 
-      if (error || !session) {
-        navigate("/login?error=Authentication failed. Please try again.");
+      let session = null;
+
+      if (code) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+        if (error || !data.session) {
+          navigate("/login?error=Authentication failed. Please try again.");
+          return;
+        }
+        session = data.session;
+      } else {
+        const { data, error } = await supabase.auth.getSession();
+        if (error || !data.session) {
+          navigate("/login?error=Authentication failed. Please try again.");
+          return;
+        }
+        session = data.session;
+      }
+
+      // ── LOGIN GUARD: check record_status = 'ACTIVE' ──
+      const { data: userRow, error: dbError } = await supabase
+        .from("user")
+        .select("record_status")
+        .eq("auth_uid", session.user.id)
+        .single();
+
+      if (dbError || !userRow) {
+        await supabase.auth.signOut();
+        navigate("/login?error=Account not found. Contact your administrator.");
         return;
       }
 
-      // Login guard check — done in PR-04 (placeholder for now)
+      if (userRow.record_status.trim() !== "ACTIVE") {
+        await supabase.auth.signOut();
+        navigate("/login?error=Your account is pending activation. Contact your administrator.");
+        return;
+      }
+
       navigate("/customers");
     }
 
