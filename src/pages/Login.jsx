@@ -25,10 +25,10 @@ export default function Login() {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', data.user.id)
-      .single()
+      .eq('userid', data.user.id)
+      .maybeSingle()
 
-    if (!userRow || userRow.record_status.trim() !== 'ACTIVE') {
+    if (userRow && userRow.record_status.trim() !== 'ACTIVE') {
       await supabase.auth.signOut()
       setError('Your account is pending activation. Contact your administrator.')
       setLoading(false)
@@ -224,6 +224,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   required
                   className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-12 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />

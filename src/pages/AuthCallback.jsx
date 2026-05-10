@@ -7,40 +7,32 @@ export default function AuthCallback() {
 
   useEffect(() => {
     async function handleCallback() {
-      const code = new URLSearchParams(window.location.search).get("code");
-
-      let session = null;
-
-      if (code) {
-        const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-        if (error || !data.session) {
-          navigate("/login?error=Authentication failed. Please try again.");
-          return;
-        }
-        session = data.session;
-      } else {
-        const { data, error } = await supabase.auth.getSession();
-        if (error || !data.session) {
-          navigate("/login?error=Authentication failed. Please try again.");
-          return;
-        }
-        session = data.session;
-      }
-
-      // ── LOGIN GUARD: check record_status = 'ACTIVE' ──
-      const { data: userRow, error: dbError } = await supabase
-        .from("user")
-        .select("record_status")
-        .eq("auth_uid", session.user.id)
-        .single();
-
-      if (dbError || !userRow) {
-        await supabase.auth.signOut();
-        navigate("/login?error=Account not found. Contact your administrator.");
+      // Check if we already have a session (code already exchanged)
+      const { data: { session: existing } } = await supabase.auth.getSession();
+      if (existing) {
+        navigate("/customers");
         return;
       }
 
-      if (userRow.record_status.trim() !== "ACTIVE") {
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (!code) {
+        navigate("/login");
+        return;
+      }
+
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (error || !data.session) {
+        navigate("/login?error=Authentication failed. Please try again.");
+        return;
+      }
+
+      const { data: userRow } = await supabase
+        .from("user")
+        .select("record_status")
+        .eq("userid", data.session.user.id)
+        .maybeSingle();
+
+      if (userRow && userRow.record_status.trim() !== "ACTIVE") {
         await supabase.auth.signOut();
         navigate("/login?error=Your account is pending activation. Contact your administrator.");
         return;
