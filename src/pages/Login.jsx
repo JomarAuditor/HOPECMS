@@ -1,14 +1,20 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
 export default function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const q = new URLSearchParams(location.search).get('error')
+    if (q) setError(decodeURIComponent(q))
+  }, [location.search])
 
   async function handleSignIn(e) {
     e.preventDefault()
@@ -25,7 +31,7 @@ export default function Login() {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', data.user.id)
+      .eq('userId', data.user.id)
       .single()
 
     if (!userRow || userRow.record_status.trim() !== 'ACTIVE') {

@@ -31,7 +31,7 @@ export default function AuthCallback() {
       const { data: userRow, error: dbError } = await supabase
         .from("user")
         .select("record_status")
-        .eq("auth_uid", session.user.id)
+        .eq("userId", session.user.id)
         .single();
 
       if (dbError || !userRow) {

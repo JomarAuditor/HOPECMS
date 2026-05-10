@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import AuthCallback from './pages/AuthCallback'
+import AuthError from './pages/AuthError'
 import Customers from './pages/Customers'
 import Sales from './pages/Sales'
 import Products from './pages/Products'
@@ -21,6 +22,7 @@ function App() {
         <Route path="/login"         element={<Login />} />
         <Route path="/register"      element={<Register />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/error" element={<AuthError />} />
 
         {/* Protected routes wrapped in AppShell */}
         <Route
