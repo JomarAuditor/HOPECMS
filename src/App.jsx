@@ -11,6 +11,13 @@ import Products from './pages/Products'
 import Admin from './pages/Admin'
 import DeletedCustomers from './pages/DeletedCustomers'
 
+function AdminOrSuperAdminRoute({ children }) {
+  const { currentUser } = useAuth()
+  const userType = currentUser?.user_type
+  if (userType === 'USER') return <Navigate to="/customers" replace />
+  return children
+}
+
 function App() {
   const { currentUser } = useAuth()
 
@@ -34,7 +41,14 @@ function App() {
           <Route path="/sales"             element={<Sales />} />
           <Route path="/products"          element={<Products />} />
           <Route path="/admin"             element={<Admin />} />
-          <Route path="/deleted-customers" element={<DeletedCustomers />} />
+          <Route
+            path="/deleted-customers"
+            element={
+              <AdminOrSuperAdminRoute>
+                <DeletedCustomers />
+              </AdminOrSuperAdminRoute>
+            }
+          />
         </Route>
 
         {/* Default redirect */}
