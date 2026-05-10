@@ -23,11 +23,9 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const value = { currentUser, loading };
-
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
+    <AuthContext.Provider value={{ currentUser, loading }}>
+      {children}
     </AuthContext.Provider>
   );
 }
