@@ -11,40 +11,62 @@ const DEFAULT_RIGHTS = {
 
 export function UserRightsProvider({ children }) {
   const { currentUser } = useAuth()
-  const [rights, setRights] = useState(DEFAULT_RIGHTS)
+  const [rights, setRights]               = useState(DEFAULT_RIGHTS)
+  const [userType, setUserType]           = useState(null)
   const [rightsLoading, setRightsLoading] = useState(true)
 
   useEffect(() => {
     if (!currentUser?.id) {
       setRights(DEFAULT_RIGHTS)
+      setUserType(null)
       setRightsLoading(false)
       return
     }
 
     async function loadRights() {
       setRightsLoading(true)
-      const { data, error } = await supabase
-        .from('usermodule_rights')
-        .select('rightcode, right_value')
-        .eq('userid', currentUser.id)
 
-      if (error || !data) {
+      const [rightsResult, userResult] = await Promise.all([
+        supabase
+          .from('usermodule_rights')
+          .select('rightcode, right_value')       // ✅ lowercase
+          .eq('userid', currentUser.id),          // ✅ lowercase
+        supabase
+          .from('user')
+          .select('user_type')
+          .eq('userid', currentUser.id)           // ✅ lowercase
+          .maybeSingle(),
+      ])
+
+      if (rightsResult.error || !rightsResult.data) {
         setRights(DEFAULT_RIGHTS)
+        console.log('❌ Rights error:', rightsResult.error)
       } else {
         const map = { ...DEFAULT_RIGHTS }
-        data.forEach(({ rightcode, right_value }) => {
-          if (rightcode in map) map[rightcode] = right_value
+        rightsResult.data.forEach(({ rightcode, right_value }) => {  // ✅ lowercase
+          if (rightcode in map) map[rightcode] = right_value          // ✅ lowercase
         })
         setRights(map)
+        console.log('✅ Rights loaded:', map, '| User type:', userResult.data?.user_type)
       }
+
+      if (!userResult.error && userResult.data) {
+        setUserType(userResult.data.user_type)
+      } else {
+        setUserType(null)
+        console.log('❌ User type error:', userResult.error)
+      }
+
       setRightsLoading(false)
     }
 
     loadRights()
   }, [currentUser?.id])
 
+  const isAdmin = () => userType === 'ADMIN' || userType === 'SUPERADMIN'
+
   return (
-    <UserRightsContext.Provider value={{ rights, rightsLoading }}>
+    <UserRightsContext.Provider value={{ rights, userType, isAdmin, rightsLoading }}>
       {children}
     </UserRightsContext.Provider>
   )
