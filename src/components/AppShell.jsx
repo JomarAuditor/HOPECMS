@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { NavLink, useNavigate, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
+import { useRights } from '../context/UserRightsContext'
 
 const NAV_ITEMS = [
   {
@@ -36,6 +37,9 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+]
+
+const ADMIN_NAV_ITEMS = [
   {
     label: 'Admin',
     to: '/admin',
@@ -63,21 +67,20 @@ const NAV_ITEMS = [
 export default function AppShell({ user }) {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { isAdmin, rightsLoading } = useRights()
 
   async function handleLogout() {
     await supabase.auth.signOut()
     navigate('/login')
   }
 
-  const userEmail = user?.email ?? 'user@hopecms.com'
+  const userEmail    = user?.email ?? 'user@hopecms.com'
   const userInitials = userEmail.slice(0, 2).toUpperCase()
-  const displayName = user?.user_metadata?.full_name ?? userEmail.split('@')[0]
+  const displayName  = user?.user_metadata?.full_name ?? userEmail.split('@')[0]
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* Top Navbar */}
       <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30">
-        {/* Hamburger — mobile only */}
         <button
           className="md:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100"
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -88,8 +91,6 @@ export default function AppShell({ user }) {
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-
-        {/* Logo */}
         <div className="flex items-center gap-2 flex-shrink-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center"
@@ -102,10 +103,7 @@ export default function AppShell({ user }) {
           </div>
           <span className="font-bold text-gray-900 text-base tracking-tight">HopeCMS</span>
         </div>
-
         <div className="flex-1" />
-
-        {/* User info + logout */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:block text-right">
             <p className="text-sm font-semibold text-gray-800 leading-tight">{displayName}</p>
@@ -132,7 +130,6 @@ export default function AppShell({ user }) {
       </header>
 
       <div className="flex flex-1">
-        {/* Sidebar overlay — mobile */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 z-20 bg-black/40 md:hidden"
@@ -140,7 +137,6 @@ export default function AppShell({ user }) {
           />
         )}
 
-        {/* Sidebar */}
         <aside
           className={`
             fixed md:static z-20 top-16 bottom-0 left-0 w-64 bg-white border-r border-gray-200
@@ -170,16 +166,43 @@ export default function AppShell({ user }) {
                   <>
                     <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{icon}</span>
                     {label}
-                    {isActive && (
-                      <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
-                    )}
+                    {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />}
                   </>
                 )}
               </NavLink>
             ))}
+
+            {!rightsLoading && isAdmin() && (
+              <>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest px-3 pt-5 pb-2">
+                  Administration
+                </p>
+                {ADMIN_NAV_ITEMS.map(({ label, to, icon }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    onClick={() => setSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                        isActive
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <span className={isActive ? 'text-blue-600' : 'text-gray-400'}>{icon}</span>
+                        {label}
+                        {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </>
+            )}
           </nav>
 
-          {/* Sidebar footer */}
           <div className="p-4 border-t border-gray-100">
             <div className="flex items-center gap-2.5 px-2">
               <div
@@ -196,7 +219,6 @@ export default function AppShell({ user }) {
           </div>
         </aside>
 
-        {/* Main content */}
         <main className="flex-1 min-w-0 p-6">
           <Outlet />
         </main>
