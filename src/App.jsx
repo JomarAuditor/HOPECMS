@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import ProtectedRoute from './components/ProtectedRoute'
+import DeletedCustomersGuard from './components/DeletedCustomersGuard'
 import AppShell from './components/AppShell'
 import { useAuth } from './context/AuthContext'
 import Login from './pages/Login'
@@ -10,13 +11,6 @@ import Sales from './pages/Sales'
 import Products from './pages/Products'
 import Admin from './pages/Admin'
 import DeletedCustomers from './pages/DeletedCustomers'
-
-function AdminOrSuperAdminRoute({ children }) {
-  const { currentUser } = useAuth()
-  const userType = currentUser?.user_type
-  if (userType === 'USER') return <Navigate to="/customers" replace />
-  return children
-}
 
 function App() {
   const { currentUser } = useAuth()
@@ -44,9 +38,9 @@ function App() {
           <Route
             path="/deleted-customers"
             element={
-              <AdminOrSuperAdminRoute>
+              <DeletedCustomersGuard>
                 <DeletedCustomers />
-              </AdminOrSuperAdminRoute>
+              </DeletedCustomersGuard>
             }
           />
         </Route>
