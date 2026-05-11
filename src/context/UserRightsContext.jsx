@@ -26,35 +26,46 @@ export function UserRightsProvider({ children }) {
     async function loadRights() {
       setRightsLoading(true)
 
+      // 1. Fetch both rights and user type
       const [rightsResult, userResult] = await Promise.all([
         supabase
           .from('usermodule_rights')
-          .select('rightcode, right_value')       // ✅ lowercase
-          .eq('userid', currentUser.id),          // ✅ lowercase
+          .select('rightcode, right_value')
+          .eq('userid', currentUser.id),
         supabase
           .from('user')
           .select('user_type')
-          .eq('userid', currentUser.id)           // ✅ lowercase
+          .eq('userid', currentUser.id)
           .maybeSingle(),
       ])
 
-      if (rightsResult.error || !rightsResult.data) {
-        setRights(DEFAULT_RIGHTS)
-        console.log('❌ Rights error:', rightsResult.error)
-      } else {
-        const map = { ...DEFAULT_RIGHTS }
-        rightsResult.data.forEach(({ rightcode, right_value }) => {  // ✅ lowercase
-          if (rightcode in map) map[rightcode] = right_value          // ✅ lowercase
+      // 2. Determine User Type first
+      const type = userResult.data?.user_type || null
+      setUserType(type)
+
+      // 3. LOGIC FIX: If SUPERADMIN, bypass the table check and grant all 1s
+      if (type === 'SUPERADMIN') {
+        const fullRights = {}
+        Object.keys(DEFAULT_RIGHTS).forEach(key => {
+          fullRights[key] = 1
         })
-        setRights(map)
-        console.log('✅ Rights loaded:', map, '| User type:', userResult.data?.user_type)
+        setRights(fullRights)
+        console.log('⚡ SUPERADMIN Bypass: All rights granted automatically.')
+        setRightsLoading(false)
+        return // Stop here
       }
 
-      if (!userResult.error && userResult.data) {
-        setUserType(userResult.data.user_type)
+      // 4. Regular logic for ADMIN and USER
+      if (rightsResult.error || !rightsResult.data || rightsResult.data.length === 0) {
+        setRights(DEFAULT_RIGHTS)
+        console.log('❌ No specific rights found or error, using defaults.')
       } else {
-        setUserType(null)
-        console.log('❌ User type error:', userResult.error)
+        const map = { ...DEFAULT_RIGHTS }
+        rightsResult.data.forEach(({ rightcode, right_value }) => {
+          if (rightcode in map) map[rightcode] = right_value
+        })
+        setRights(map)
+        console.log('✅ Rights loaded for', type, ':', map)
       }
 
       setRightsLoading(false)
