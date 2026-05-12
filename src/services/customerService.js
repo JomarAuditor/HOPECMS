@@ -144,3 +144,4 @@ export async function getCurrentPrice(prodCode) {
   if (error) return null
   return data
 }
+
