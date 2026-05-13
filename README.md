@@ -87,13 +87,15 @@ Test files are located in `src/__tests__/`.
 
 Run migration files in this order via **Supabase SQL Editor**:
 
-1. `db/migration/HopeDB5Tables.sql`
-2. `db/migration/authorizationModule.sql`
-3. `db/migration/seedModule.sql`
-4. `db/migration/seedRights.sql`
-5. `db/migration/seedSuperAdmin.sql`
-6. `db/migration/recordAndStampOnCustTable.sql`
-7. `db/migration/provisionNewUserTrigger.sql`
+1. `db/migration/hopeCMSTable.sql` — creates the 5 HopeDB tables (customer, sales, salesDetail, product, priceHist)
+2. `db/migration/alterCustomer.sql` — adds `record_status` + `stamp` columns to customer only
+3. `db/migration/rightsTable.sql` — creates the authorization tables (user, Module, user_module, rights, UserModule_Rights)
+4. `db/migration/seedModulesAndRights.sql` — seeds the 4 modules + 9 rights
+5. `db/migration/seedHopeData.sql` — seeds the business data (82 customers, 52 products, 124 sales, 247 salesDetail, 70 priceHist)
+6. `db/migration/provisionNewUserTrigger.sql` — installs the trigger that auto-creates `public.user` rows on signup
+7. **Manual step:** create the SUPERADMIN auth account in Supabase Dashboard → Authentication → Users (`jcesperanza@neu.edu.ph`), then copy its UID
+8. `db/migration/seedSuperAdmin.sql` — find/replace `<<SUPERADMIN_AUTH_UID>>` with the real UID, then run
+9. `db/migration/verifySeeds.sql` — confirms all row counts and SUPERADMIN has 9 rights
 
 ---
 
@@ -104,7 +106,7 @@ HOPECMS/
 ├── src/
 │   ├── __tests__/      # Vitest test files (M5)
 │   ├── components/     # ProtectedRoute, AppShell, PlaceholderPage
-│   ├── context/        # AuthContext (M4)
+│   ├── context/        # AuthContext, UserRightsContext (M4)
 │   ├── lib/            # supabaseClient.js
 │   └── pages/          # Login, Register, AuthCallback, Customers, etc.
 ├── db/

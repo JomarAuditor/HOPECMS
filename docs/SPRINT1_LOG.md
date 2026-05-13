@@ -21,22 +21,26 @@
 
 ### M3 — Database Specialist
 - Set up Supabase project under `CustomerManagementOrg`
-- Created core tables via `HopeDB5Tables.sql`: `sales`, `salesDetail`, `product`, `priceHist`, `customer`
-- Created authorization structure via `authorizationModule.sql`: `modules`, `rights`, `user_rights` tables
-- Seeded 4 modules via `seedModule.sql`: `Cust_Mod`, `Sales_Mod`, `Prod_Mod`, `Adm_Mod`
-- Seeded 9 rights via `seedRights.sql`: `CUST_VIEW`, `CUST_ADD`, `CUST_EDIT`, `CUST_DEL`, `SALES_VIEW`, `SD_VIEW`, `PROD_VIEW`, `PRICE_VIEW`, `ADM_USR`
-- Created SuperAdmin seed (`seedSuperAdmin.sql`) and rights update script (`updateUserRight.sql`)
+- Created the 5 HopeDB tables via `hopeCMSTable.sql`: `customer`, `sales`, `salesDetail`, `product`, `priceHist`
+- Added `record_status` (DEFAULT `'ACTIVE'`) and `stamp` columns to the `customer` table only via `alterCustomer.sql`
+- Created the authorization structure via `rightsTable.sql`: `user`, `Module`, `user_module`, `rights`, `UserModule_Rights`
+- Seeded 4 modules + 9 rights via `seedModulesAndRights.sql`:
+  - Modules: `Cust_Mod`, `Sales_Mod`, `Prod_Mod`, `Adm_Mod`
+  - Rights: `CUST_VIEW`, `CUST_ADD`, `CUST_EDIT`, `CUST_DEL`, `SALES_VIEW`, `SD_VIEW`, `PROD_VIEW`, `PRICE_VIEW`, `ADM_USER`
+- Seeded business data via `seedHopeData.sql`: 82 customers, 52 products, 124 sales, 247 salesDetail, 70 priceHist
+- Created SuperAdmin promotion script (`seedSuperAdmin.sql`) — UPSERT pattern for `jcesperanza@neu.edu.ph`
 - Created `provisionNewUserTrigger.sql`:
-  - Inserts new user as `INACTIVE` into `public.user` using `auth_uid`
-  - Seeds 4 rows in `user_module`
-  - Seeds 9 rights in `UserModule_Rights` (VIEW rights = 1, all others = 0)
-- Added `recordAndStampOnCustTable.sql` for customer table record status and timestamps
+  - Fires `AFTER INSERT ON auth.users`
+  - Inserts new user as `USER` / `INACTIVE` into `public.user` (PK = `userId`, matches `auth.uid()`)
+  - Seeds 4 rows in `user_module` (all 0 — ADMIN flips per user)
+  - Seeds 9 rows in `UserModule_Rights` (VIEW rights = 1, all add/edit/del/admin = 0)
+- Wrote verification queries in `verifySeeds.sql` (row counts, SUPERADMIN rights check)
 - Created ERD diagram (`docs/HOPECMS_ERD.png`)
 
 ### M4 — Rights & Authentication Specialist
 - Built `AuthContext.jsx` — session listener via `onAuthStateChange`, exposes `currentUser` and `loading`
 - Built `ProtectedRoute.jsx` — redirects to `/login` if not authenticated
-- Built `Login.jsx` — email/password sign-in, Google OAuth, inline login guard via `auth_uid`
+- Built `Login.jsx` — email/password sign-in, Google OAuth, inline login guard via `userid`
 - Built `Register.jsx` — fields for first name, last name, username, email, password; Google register; success state
 - Built `AuthCallback.jsx` — PKCE code exchange via `exchangeCodeForSession`, login guard for Google OAuth
 - Configured `supabaseClient.js` with `flowType: 'pkce'`, `autoRefreshToken`, `persistSession`, `detectSessionInUrl`
@@ -77,6 +81,7 @@
 | IntelliJ terminal not recognizing npm | M5 | Installed Node.js, restarted terminal |
 | Google OAuth required PKCE flow | M4 | Implemented `exchangeCodeForSession` in `AuthCallback.jsx` |
 | `supabaseClient.js` needed PKCE config | M4 | Added `flowType: 'pkce'` to client options |
+| Tests originally referenced `auth_uid` column that doesn't exist in schema | M5 | Updated mocks to query `userid` (the real PK column on `public.user`) |
 
 ---
 
@@ -86,7 +91,7 @@
 - [ ] Wire `UserModule_Rights` to control UI visibility per role
 - [ ] Customer CRUD with `record_status` soft-delete
 - [ ] AppShell navigation based on user role
-- [ ] M5: Sprint 2 test cases for admin panel and rights enforcement
+- [ ] M5: Sprint 2 test cases for admin panel and rights enforcement (27-case rights matrix)
 
 ---
 
