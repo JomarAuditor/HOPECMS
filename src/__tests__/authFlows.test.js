@@ -8,11 +8,11 @@
 //   4. Login Guard — ACTIVE        (TC-10 to TC-12)
 //
 // Matches the actual implementation in:
-//   src/pages/Login.jsx        — signInWithPassword + login guard via auth_uid
+//   src/pages/Login.jsx        — signInWithPassword + login guard via `userid`
 //   src/pages/Register.jsx     — signUp with first_name, last_name, username metadata
-//   src/pages/AuthCallback.jsx — PKCE exchangeCodeForSession + login guard
+//   src/pages/AuthCallback.jsx — PKCE exchangeCodeForSession + login guard via `userid`
 //   src/lib/supabaseClient.js  — PKCE flowType
-//   db/migration/seedRights.sql — 9 rights, admin right code is 'ADM_USR'
+//   db/migration/seedModulesAndRights.sql — 9 rights, admin right code is 'ADM_USER'
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -37,12 +37,15 @@ vi.mock('../lib/supabaseClient', () => ({
 
 import { supabase } from '../lib/supabaseClient'
 
-// ── Helper: mock public.user row by auth_uid ──────────────────────────────────
+// ── Helper: mock public.user row by userid ────────────────────────────────────
+// Matches the real query chain used in Login.jsx / AuthCallback.jsx /
+// AuthContext.jsx:
+//     supabase.from('user').select('record_status').eq('userid', id).maybeSingle()
 function mockUserTable(record_status) {
   supabase.from.mockReturnValue({
-    select: vi.fn().mockReturnThis(),
-    eq:     vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({
+    select:      vi.fn().mockReturnThis(),
+    eq:          vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({
       data:  { record_status },
       error: null,
     }),
@@ -52,9 +55,9 @@ function mockUserTable(record_status) {
 // ── Helper: mock missing user row (null) ──────────────────────────────────────
 function mockUserTableNotFound() {
   supabase.from.mockReturnValue({
-    select: vi.fn().mockReturnThis(),
-    eq:     vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue({
+    select:      vi.fn().mockReturnThis(),
+    eq:          vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn().mockResolvedValue({
       data:  null,
       error: { message: 'Row not found' },
     }),
@@ -129,8 +132,8 @@ describe('Email Registration', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-002')
-      .single()
+      .eq('userid', 'uuid-002')
+      .maybeSingle()
 
     expect(userRow.record_status).toBe('INACTIVE')
   })
@@ -192,7 +195,7 @@ describe('Google OAuth New User Flow', () => {
 
 // =============================================================================
 // 3. LOGIN GUARD — BLOCKS INACTIVE USERS
-//    Both Login.jsx and AuthCallback.jsx query public.user by auth_uid and
+//    Both Login.jsx and AuthCallback.jsx query public.user by `userid` and
 //    call signOut() + set error when record_status is not 'ACTIVE'.
 // =============================================================================
 describe('Login Guard — INACTIVE user is blocked', () => {
@@ -205,8 +208,8 @@ describe('Login Guard — INACTIVE user is blocked', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-inactive')
-      .single()
+      .eq('userid', 'uuid-inactive')
+      .maybeSingle()
 
     let errorMsg = null
     if (!userRow || userRow.record_status.trim() !== 'ACTIVE') {
@@ -224,8 +227,8 @@ describe('Login Guard — INACTIVE user is blocked', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-inactive')
-      .single()
+      .eq('userid', 'uuid-inactive')
+      .maybeSingle()
 
     const blocked  = !userRow || userRow.record_status.trim() !== 'ACTIVE'
     const errorMsg = blocked
@@ -244,8 +247,8 @@ describe('Login Guard — INACTIVE user is blocked', () => {
     const { data: userRow, error: dbError } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-ghost')
-      .single()
+      .eq('userid', 'uuid-ghost')
+      .maybeSingle()
 
     let errorMsg = null
     if (dbError || !userRow) {
@@ -272,8 +275,8 @@ describe('Login Guard — ACTIVE user is allowed', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-active')
-      .single()
+      .eq('userid', 'uuid-active')
+      .maybeSingle()
 
     if (!userRow || userRow.record_status.trim() !== 'ACTIVE') {
       await supabase.auth.signOut()
@@ -288,8 +291,8 @@ describe('Login Guard — ACTIVE user is allowed', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', 'uuid-active')
-      .single()
+      .eq('userid', 'uuid-active')
+      .maybeSingle()
 
     const errorMsg = (!userRow || userRow.record_status.trim() !== 'ACTIVE')
       ? 'Your account is pending activation. Contact your administrator.'
@@ -315,8 +318,8 @@ describe('Login Guard — ACTIVE user is allowed', () => {
     const { data: userRow } = await supabase
       .from('user')
       .select('record_status')
-      .eq('auth_uid', data.user.id)
-      .single()
+      .eq('userid', data.user.id)
+      .maybeSingle()
 
     const destination = (userRow && userRow.record_status.trim() === 'ACTIVE')
       ? '/customers'
