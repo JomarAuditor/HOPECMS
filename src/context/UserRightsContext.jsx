@@ -50,7 +50,6 @@ export function UserRightsProvider({ children }) {
           fullRights[key] = 1
         })
         setRights(fullRights)
-        console.log('⚡ SUPERADMIN Bypass: All rights granted automatically.')
         setRightsLoading(false)
         return // Stop here
       }
@@ -58,14 +57,12 @@ export function UserRightsProvider({ children }) {
       // 4. Regular logic for ADMIN and USER
       if (rightsResult.error || !rightsResult.data || rightsResult.data.length === 0) {
         setRights(DEFAULT_RIGHTS)
-        console.log('❌ No specific rights found or error, using defaults.')
       } else {
         const map = { ...DEFAULT_RIGHTS }
         rightsResult.data.forEach(({ rightcode, right_value }) => {
           if (rightcode in map) map[rightcode] = right_value
         })
         setRights(map)
-        console.log('✅ Rights loaded for', type, ':', map)
       }
 
       setRightsLoading(false)
