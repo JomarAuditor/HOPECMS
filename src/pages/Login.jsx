@@ -1,14 +1,15 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 
 export default function Login() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState(() => searchParams.get('error') || '')
 
   async function handleSignIn(e) {
     e.preventDefault()
@@ -22,13 +23,14 @@ export default function Login() {
     }
 
     // ── LOGIN GUARD: check record_status = 'ACTIVE' ──
-    const { data: userRow } = await supabase
+    const { data: userRow, error: dbError } = await supabase
       .from('user')
       .select('record_status')
       .eq('userid', data.user.id)
       .maybeSingle()
 
-    if (userRow && userRow.record_status.trim() !== 'ACTIVE') {
+    // Block if: row not found, db error, or status is not ACTIVE
+    if (dbError || !userRow || userRow.record_status.trim() !== 'ACTIVE') {
       await supabase.auth.signOut()
       setError('Your account is pending activation. Contact your administrator.')
       setLoading(false)
@@ -210,14 +212,9 @@ export default function Login() {
 
             {/* Password */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-bold tracking-widest text-gray-700 uppercase">
-                  Password
-                </label>
-                <Link to="/forgot-password" className="text-sm font-semibold text-blue-600 hover:underline">
-                  Forgot password?
-                </Link>
-              </div>
+              <label className="block text-xs font-bold tracking-widest text-gray-700 uppercase">
+                                Password
+                              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
