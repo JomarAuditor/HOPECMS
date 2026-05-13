@@ -24,7 +24,7 @@ The system is built around the following core entities:
 |---|---|
 | Frontend | [React](https://react.dev/) + [Vite](https://vitejs.dev/) |
 | Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Backend / Database | [Supabase](https://supabase.com/) (PostgreSQL + Auth + Storage) |
+| Backend / Database | [Supabase](https://supabase.com/) (PostgreSQL + Auth + RLS) |
 | Testing | [Vitest](https://vitest.dev/) + [React Testing Library](https://testing-library.com/) |
 | Language | JavaScript / JSX |
 | Package Manager | npm |
@@ -49,9 +49,7 @@ npm install
 ```
 
 ### Environment Setup
-- Create a `.env` file in the root directory
-- Copy the keys from the **pinned message in our GC**
-- Ensure your `.env` looks like `.env.example`:
+Create a `.env` file in the root directory and fill in the values from the **pinned message in our GC**:
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
@@ -79,21 +77,31 @@ Run all tests:
 npm run test
 ```
 
-Test files are located in `src/__tests__/`.
+Expected results:
+- `authFlows.test.js` — 12 tests (Sprint 1 auth flows)
+- `rightsMatrix.test.js` — 27 tests (3 user types × 9 rights)
+- `functionalLogic.test.js` — 14 tests (view-only, soft-delete, recovery, RLS, stamp)
+
+Test files are in `src/__tests__/`.
 
 ---
 
 ## 🗄️ Database Setup
 
-Run migration files in this order via **Supabase SQL Editor**:
+Run migration files **in this exact order** via **Supabase SQL Editor**:
 
-1. `db/migration/HopeDB5Tables.sql`
-2. `db/migration/authorizationModule.sql`
-3. `db/migration/seedModule.sql`
-4. `db/migration/seedRights.sql`
-5. `db/migration/seedSuperAdmin.sql`
-6. `db/migration/recordAndStampOnCustTable.sql`
-7. `db/migration/provisionNewUserTrigger.sql`
+1. `db/migration/hopeCMSTable.sql` — core tables (customer, sales, salesdetail, product, pricehist)
+2. `db/migration/alterCustomer.sql` — adds record_status and stamp columns to customer
+3. `db/migration/rightsTable.sql` — creates user, module, rights, user_module, usermodule_rights tables
+4. `db/migration/seedModulesAndRights` — seeds 4 modules and 9 rights
+5. `db/migration/seedSuperAdmin.sql` — creates the initial SUPERADMIN account
+6. `db/migration/customerRLS.sql` — RLS policy: USER only sees ACTIVE customers
+7. `db/migration/adminMouduleRLS.sql` — RLS policy: blocks non-SUPERADMIN from admin module
+8. `db/migration/viewOnlyTableRLS.sql` — RLS policy: blocks write calls on Sales, SalesDetail, Product, PriceHistory
+9. `db/migration/salesCustomerSummaryView.sql` — view for sales + customer summary
+10. `db/migration/productCurrentPriceView.sql` — view for product + current price
+11. `db/migration/customerRevenueView.sql` — view for customer revenue report
+12. `db/migration/verifySeeds.sql` — run to verify all seed data is correct
 
 ---
 
@@ -102,22 +110,28 @@ Run migration files in this order via **Supabase SQL Editor**:
 ```
 HOPECMS/
 ├── src/
-│   ├── __tests__/      # Vitest test files (M5)
-│   ├── components/     # ProtectedRoute, AppShell, PlaceholderPage
-│   ├── context/        # AuthContext (M4)
-│   ├── lib/            # supabaseClient.js
-│   └── pages/          # Login, Register, AuthCallback, Customers, etc.
+│   ├── __tests__/          # Vitest test files (M5)
+│   │   ├── authFlows.test.js
+│   │   ├── rightsMatrix.test.js
+│   │   ├── functionalLogic.test.js
+│   │   └── setup.js
+│   ├── components/         # ProtectedRoute, AppShell, modals
+│   ├── context/            # AuthContext, UserRightsContext (M4)
+│   ├── lib/                # supabaseClient.js
+│   ├── pages/              # Login, Register, AuthCallback, Customers, etc.
+│   └── services/           # customerService.js
 ├── db/
-│   └── migration/      # SQL migration files (M3)
+│   └── migration/          # SQL migration files (M3)
 ├── docs/
-│   ├── HOPECMS_ERD.png # Entity Relationship Diagram (M3)
-│   └── SPRINT1_LOG.md  # Sprint 1 log (M5)
+│   ├── HOPECMS_ERD.png     # Entity Relationship Diagram (M3)
+│   ├── SPRINT1_LOG.md      # Sprint 1 log (M5)
+│   └── SPRINT2_LOG.md      # Sprint 2 log (M5)
 └── README.md
 ```
 
 ---
 
-## 🛡️ Branching Strategy
+## 🌿 Branching Strategy
 
 | Branch | Description |
 |---|---|
@@ -136,12 +150,12 @@ HOPECMS/
 All pull requests must follow this format for grading:
 
 ```
-M#_SPRINT 1_PR# - [branch-name] — [brief-description]
+M#_SPRINT #_PR# - [branch-name] — [brief-description]
 ```
 
 **Example:**
 ```
-M5_SPRINT 1_PR1 - test/sprint1-auth-flows — Email + Google OAuth + login guard tests
+M5_SPRINT 2_PR1 - test/sprint2-rights-27-cases — Full 27-case rights test matrix
 ```
 
 ---
@@ -150,8 +164,8 @@ M5_SPRINT 1_PR1 - test/sprint1-auth-flows — Email + Google OAuth + login guard
 
 | Member | Role |
 |--------|------|
-| M1 | Project Manager / Lead Developer |
-| M2 | UI Developer (Jomar Auditor) |
-| M3 | Database Specialist |
-| M4 | Rights & Authentication Specialist |
+| M1 | Project Manager / Lead Developer (Jomar Auditor) |
+| M2 | UI Developer (Christian Adlawan)|
+| M3 | Database Specialist (Gabriel Antonino) |
+| M4 | Rights & Authentication Specialist (Trixian Wackyll Granado) |
 | M5 | QA / Documentation Specialist (Wayne Andy Villamor) |
