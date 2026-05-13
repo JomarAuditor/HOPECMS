@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { getUsers, activateUser, deactivateUser } from '../services/adminService'
 import ErrorBoundary from '../components/ErrorBoundary'
 
-/* ── Helpers ── */
 function getInitials(name, email) {
   const src = name && name !== email ? name : email
   const parts = src.trim().split(/[\s@._-]+/).filter(Boolean)
@@ -26,7 +25,6 @@ function avatarColor(str = '') {
   return colors[Math.abs(hash) % colors.length]
 }
 
-/* ── Sub-components ── */
 function Toast({ message, type, onClose }) {
   useEffect(() => {
     const t = setTimeout(onClose, 3500)
@@ -35,14 +33,13 @@ function Toast({ message, type, onClose }) {
 
   const isSuccess = type === 'success'
   return (
-    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold animate-fade-in ${
+    <div className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-sm font-semibold ${
       isSuccess ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'
     }`}>
-      {isSuccess ? (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-      ) : (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      )}
+      {isSuccess
+        ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      }
       <span>{message}</span>
       <button onClick={onClose} className="ml-1 opacity-70 hover:opacity-100 cursor-pointer text-base leading-none">×</button>
     </div>
@@ -51,8 +48,10 @@ function Toast({ message, type, onClose }) {
 
 function StatusBadge({ active }) {
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide ${
-      active ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200' : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'
+    <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide ${
+      active
+        ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
+        : 'bg-gray-100 text-gray-500 ring-1 ring-gray-200'
     }`}>
       <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500' : 'bg-gray-400'}`} />
       {active ? 'Active' : 'Inactive'}
@@ -67,7 +66,7 @@ function TypeBadge({ type }) {
     USER:       'bg-gray-100 text-gray-600 ring-1 ring-gray-200',
   }
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold tracking-wide ${map[type] ?? map.USER}`}>
+    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold tracking-wide ${map[type] ?? map.USER}`}>
       {type || 'USER'}
     </span>
   )
@@ -81,28 +80,23 @@ function UserCard({ user, actionLoading, onActivate, onDeactivate }) {
   const gradient     = avatarColor(user.userid)
 
   return (
-    <div className={`group flex items-center gap-4 px-5 py-4 transition-colors ${
-      isSuperAdmin ? 'bg-gray-50/60' : 'bg-white hover:bg-blue-50/30'
+    <div className={`flex items-center gap-4 px-5 py-4 transition-colors ${
+      isSuperAdmin ? 'bg-gray-50' : 'bg-white hover:bg-blue-50'
     }`}>
-      {/* Avatar */}
-      <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}>
+      <div className={`w-9 h-9 rounded-full bg-linear-to-br ${gradient} flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm`}>
         {initials}
       </div>
-
-      {/* Identity */}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-semibold text-gray-900 truncate max-w-[180px]">
+          <span className="text-sm font-semibold text-gray-900 truncate max-w-45">
             {user.username && user.username !== user.email ? user.username : user.email?.split('@')[0]}
           </span>
           <TypeBadge type={user.user_type} />
           <StatusBadge active={isActive} />
         </div>
         <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
-        <p className="text-[10px] text-gray-300 font-mono mt-0.5 truncate hidden sm:block">{user.userid}</p>
+        <p className="text-xs text-gray-300 font-mono mt-0.5 truncate hidden sm:block">{user.userid}</p>
       </div>
-
-      {/* Action */}
       <div className="shrink-0">
         {isSuperAdmin ? (
           <span className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-400">
@@ -136,37 +130,27 @@ function UserCard({ user, actionLoading, onActivate, onDeactivate }) {
   )
 }
 
-/* ── Stats bar ── */
 function StatsBar({ users }) {
-  const total      = users.length
-  const active     = users.filter(u => u.record_status === 'ACTIVE').length
-  const inactive   = total - active
-  const superadmin = users.filter(u => u.user_type === 'SUPERADMIN').length
-  const admin      = users.filter(u => u.user_type === 'ADMIN').length
-  const regular    = users.filter(u => u.user_type === 'USER').length
-
   const stats = [
-    { label: 'Total',      value: total,      color: 'text-gray-700' },
-    { label: 'Active',     value: active,     color: 'text-emerald-600' },
-    { label: 'Inactive',   value: inactive,   color: 'text-gray-400' },
-    { label: 'Superadmin', value: superadmin, color: 'text-violet-600' },
-    { label: 'Admin',      value: admin,      color: 'text-blue-600' },
-    { label: 'User',       value: regular,    color: 'text-gray-500' },
+    { label: 'Total',      value: users.length,                                          color: 'text-gray-700' },
+    { label: 'Active',     value: users.filter(u => u.record_status === 'ACTIVE').length, color: 'text-emerald-600' },
+    { label: 'Inactive',   value: users.filter(u => u.record_status !== 'ACTIVE').length, color: 'text-gray-400' },
+    { label: 'Superadmin', value: users.filter(u => u.user_type === 'SUPERADMIN').length, color: 'text-violet-600' },
+    { label: 'Admin',      value: users.filter(u => u.user_type === 'ADMIN').length,      color: 'text-blue-600' },
+    { label: 'User',       value: users.filter(u => u.user_type === 'USER').length,       color: 'text-gray-500' },
   ]
-
   return (
     <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
       {stats.map(s => (
         <div key={s.label} className="bg-white rounded-xl border border-gray-100 px-3 py-3 text-center shadow-sm">
           <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-          <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mt-0.5">{s.label}</p>
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mt-0.5">{s.label}</p>
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Skeleton loader ── */
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-4 px-5 py-4 border-b border-gray-100 last:border-0">
@@ -180,15 +164,14 @@ function SkeletonRow() {
   )
 }
 
-/* ── Main content ── */
 function AdminContent() {
-  const [users, setUsers]               = useState([])
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
+  const [users, setUsers]                 = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
   const [actionLoading, setActionLoading] = useState(null)
-  const [toast, setToast]               = useState(null)
-  const [filter, setFilter]             = useState('ALL')
-  const hasFetched = useRef(false)
+  const [toast, setToast]                 = useState(null)
+  const [filter, setFilter]               = useState('ALL')
+  const hasFetched                        = useRef(false)
 
   const loadUsers = useCallback(async () => {
     try {
@@ -203,7 +186,6 @@ function AdminContent() {
     }
   }, [])
 
-  // Only fetch once on mount — never re-fetch on tab switch
   useEffect(() => {
     if (!hasFetched.current) {
       hasFetched.current = true
@@ -235,9 +217,9 @@ function AdminContent() {
 
   const FILTERS = ['ALL', 'ACTIVE', 'INACTIVE', 'SUPERADMIN', 'ADMIN', 'USER']
   const filtered = users.filter(u => {
-    if (filter === 'ALL')        return true
-    if (filter === 'ACTIVE')     return u.record_status === 'ACTIVE'
-    if (filter === 'INACTIVE')   return u.record_status === 'INACTIVE'
+    if (filter === 'ALL')      return true
+    if (filter === 'ACTIVE')   return u.record_status === 'ACTIVE'
+    if (filter === 'INACTIVE') return u.record_status !== 'ACTIVE'
     return u.user_type === filter
   })
 
@@ -253,14 +235,10 @@ function AdminContent() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
-
-      {/* Header */}
       <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            Manage account access and roles. SUPERADMIN accounts are protected.
-          </p>
+          <p className="text-sm text-gray-400 mt-0.5">Manage account access and roles. SUPERADMIN accounts are protected.</p>
         </div>
         <button
           onClick={loadUsers}
@@ -277,10 +255,8 @@ function AdminContent() {
         </button>
       </div>
 
-      {/* Stats */}
       {!loading && <StatsBar users={users} />}
 
-      {/* Filter tabs */}
       <div className="flex gap-1.5 flex-wrap mb-4">
         {FILTERS.map(f => (
           <button
@@ -297,15 +273,12 @@ function AdminContent() {
         ))}
       </div>
 
-      {/* Card list */}
       <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-
-        {/* List header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/70">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
             {loading ? 'Loading…' : `${filtered.length} account${filtered.length !== 1 ? 's' : ''}`}
           </p>
-          <div className="flex items-center gap-3 text-[10px] text-gray-400 font-medium">
+          <div className="flex items-center gap-3 text-xs text-gray-400 font-medium">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"/>Active</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-300 inline-block"/>Inactive</span>
           </div>
@@ -313,7 +286,7 @@ function AdminContent() {
 
         {loading ? (
           <div className="divide-y divide-gray-100">
-            {Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}
+            {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
           </div>
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center">
