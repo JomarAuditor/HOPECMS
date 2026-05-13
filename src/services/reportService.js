@@ -19,9 +19,11 @@ export async function getCustomerSalesSummary() {
 }
 
 export async function getTopCustomers() {
+  // First try: only customers with actual spend, ordered highest first
   const { data, error } = await supabase
     .from('customer_sales_summary')
     .select('custno, custname, totaltransactions, totalspend')
+    .gt('totalspend', 0)
     .order('totalspend', { ascending: false })
     .limit(10)
   if (error) throw error
