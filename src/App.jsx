@@ -11,10 +11,11 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import AuthCallback from './pages/AuthCallback'
 import Customers from './pages/Customers'
-import CustomerDetail from './pages/CustomerDetail'   // ← new for PR-03
+import CustomerDetail from './pages/CustomerDetail'
 import Sales from './pages/Sales'
 import Products from './pages/Products'
 import Admin from './pages/Admin'
+import Reports from './pages/Reports'          // ← new
 import DeletedCustomers from './pages/DeletedCustomers'
 
 function AuthenticatedLayout() {
@@ -42,11 +43,12 @@ function App() {
                   </ProtectedRoute>
                 }
               >
-                <Route path="/customers"          element={<Customers />} />
-                <Route path="/customers/:custno"  element={<CustomerDetail />} /> {/* ← new */}
-                <Route path="/sales"              element={<Sales />} />
-                <Route path="/products"           element={<Products />} />
-                <Route path="/admin"              element={<Admin />} />
+                <Route path="/customers"         element={<Customers />} />
+                <Route path="/customers/:custno" element={<CustomerDetail />} />
+                <Route path="/sales"             element={<Sales />} />
+                <Route path="/products"          element={<Products />} />
+                <Route path="/admin"             element={<Admin />} />
+                <Route path="/reports"           element={<Reports />} />  {/* ← new */}
                 <Route
                   path="/deleted-customers"
                   element={
