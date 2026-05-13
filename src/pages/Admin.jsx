@@ -27,8 +27,8 @@ function avatarColor(str = '') {
 
 function Toast({ message, type, onClose }) {
   useEffect(() => {
-    const t = setTimeout(onClose, 3500)
-    return () => clearTimeout(t)
+    const timer = setTimeout(onClose, 3500)
+    return () => clearTimeout(timer)
   }, [onClose])
 
   const isSuccess = type === 'success'
