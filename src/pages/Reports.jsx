@@ -1,458 +1,435 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { getProductRevenue, getCustomerSalesSummary, getTopCustomers } from '../services/reportService'
 import {
-  getCustomerSalesSummary,
-  getTopCustomers,
-  getProductRevenue,
-} from '../services/reportService'
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell,
+} from 'recharts'
+import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorBoundary from '../components/ErrorBoundary'
 
-// ── Skeleton ─────────────────────────────────────────────────────────────────
-function RowSkeleton({ cols }) {
+const PAGE_SIZE = 10
+
+// ── Shared helpers ─────────────────────────────────────────────────────────
+
+function fmt(val) {
+  return `₱${parseFloat(val || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+}
+
+function StatCard({ icon, label, value, sub, accent }) {
   return (
-    <>
-      {[...Array(6)].map((_, i) => (
-        <tr key={i} className="animate-pulse">
-          {[...Array(cols)].map((__, j) => (
-            <td key={j} className="px-6 py-4">
-              <div className="h-3 bg-gray-200 rounded w-full" />
-            </td>
-          ))}
-        </tr>
-      ))}
-    </>
-  )
-}
-
-// ── Currency formatter ────────────────────────────────────────────────────────
-function currency(val) {
-  return new Intl.NumberFormat('en-PH', {
-    style: 'currency', currency: 'PHP', minimumFractionDigits: 2,
-  }).format(val ?? 0)
-}
-
-// ── Sort icon ─────────────────────────────────────────────────────────────────
-function SortIcon({ col, sortCol, sortDir }) {
-  if (sortCol !== col) return (
-    <svg className="inline ml-1 text-gray-300" width="12" height="12"
-         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="12" y1="5" x2="12" y2="19" />
-      <polyline points="5 12 12 19 19 12" />
-    </svg>
-  )
-  return sortDir === 'asc' ? (
-    <svg className="inline ml-1 text-blue-600" width="12" height="12"
-         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="18 15 12 9 6 15" />
-    </svg>
-  ) : (
-    <svg className="inline ml-1 text-blue-600" width="12" height="12"
-         viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  )
-}
-
-// ── Customer Sales Summary Tab ────────────────────────────────────────────────
-function CustomerSalesSummary() {
-  const [rows, setRows]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
-  const [search, setSearch]   = useState('')
-  const [sortCol, setSortCol] = useState('totalspend')
-  const [sortDir, setSortDir] = useState('desc')
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await getCustomerSalesSummary()
-      setRows(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  function toggleSort(col) {
-    if (sortCol === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    else { setSortCol(col); setSortDir('desc') }
-  }
-
-  const visible = useMemo(() => {
-    let filtered = rows.filter(r =>
-      r.custname?.toLowerCase().includes(search.toLowerCase().trim())
-    )
-    filtered.sort((a, b) => {
-      let av = a[sortCol], bv = b[sortCol]
-      if (typeof av === 'string') av = av.toLowerCase()
-      if (typeof bv === 'string') bv = bv.toLowerCase()
-      if (av < bv) return sortDir === 'asc' ? -1 : 1
-      if (av > bv) return sortDir === 'asc' ? 1 : -1
-      return 0
-    })
-    return filtered
-  }, [rows, search, sortCol, sortDir])
-
-  if (error) return <ErrorMsg message={error} />
-
-  const cols = [
-    { key: 'custname',        label: 'Customer Name' },
-    { key: 'totaltransactions', label: 'Transactions' },
-    { key: 'totalspend',      label: 'Total Spend' },
-    { key: 'lastsaledate',    label: 'Last Sale Date' },
-  ]
-
-  return (
-    <div>
-      {/* Search */}
-      <div className="mb-4 flex items-center gap-3">
-        <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-               width="15" height="15" viewBox="0 0 24 24" fill="none"
-               stroke="currentColor" strokeWidth="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by customer name..."
-            className="pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg
-                       focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
-          />
-        </div>
-        <span className="text-xs text-gray-400">{visible.length} customer(s)</span>
+    <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4 shadow-sm">
+      <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${accent}`}>
+        {icon}
       </div>
-
-      <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {cols.map(c => (
-                <th
-                  key={c.key}
-                  onClick={() => toggleSort(c.key)}
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500
-                             uppercase tracking-wider cursor-pointer hover:bg-gray-100
-                             select-none transition"
-                >
-                  {c.label}
-                  <SortIcon col={c.key} sortCol={sortCol} sortDir={sortDir} />
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              <RowSkeleton cols={4} />
-            ) : visible.length === 0 ? (
-              <tr>
-                <td colSpan="4" className="px-6 py-16 text-center">
-                  <p className="text-sm text-gray-400 font-medium">
-                    {search ? `No results for "${search}"` : 'No sales recorded.'}
-                  </p>
-                </td>
-              </tr>
-            ) : (
-              visible.map(r => (
-                <tr key={r.custno} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {r.custname}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {r.totaltransactions}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                    {currency(r.totalspend)}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {r.lastsaledate
-                      ? new Date(r.lastsaledate).toLocaleDateString()
-                      : '—'}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
+        <p className="text-xl font-bold text-gray-900 leading-none">{value}</p>
+        {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
       </div>
     </div>
   )
 }
 
-// ── Top Customers Tab ─────────────────────────────────────────────────────────
-function TopCustomers() {
-  const navigate          = useNavigate()
-  const [rows, setRows]   = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+function Pagination({ page, total, pageSize, onChange }) {
+  const totalPages = Math.ceil(total / pageSize)
+  if (totalPages <= 1) return null
+  const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+  return (
+    <div className="px-6 py-3 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+      <span className="text-xs text-gray-500">
+        Showing {Math.min((page - 1) * pageSize + 1, total)}–{Math.min(page * pageSize, total)} of {total}
+      </span>
+      <div className="flex gap-1">
+        <button
+          onClick={() => onChange(page - 1)} disabled={page === 1}
+          className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs">
+          ‹
+        </button>
+        {pages.map(p => (
+          <button key={p} onClick={() => onChange(p)}
+            className={`w-7 h-7 flex items-center justify-center rounded text-xs font-medium transition ${
+              p === page
+                ? 'bg-blue-600 text-white border border-blue-600'
+                : 'border border-gray-200 text-gray-600 hover:bg-gray-100'
+            }`}>
+            {p}
+          </button>
+        ))}
+        <button
+          onClick={() => onChange(page + 1)} disabled={page === totalPages}
+          className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition text-xs">
+          ›
+        </button>
+      </div>
+    </div>
+  )
+}
 
-  useEffect(() => { load() }, [])
+const CHART_COLORS = ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#1d4ed8', '#1e40af', '#1e3a8a', '#172554']
 
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await getTopCustomers()
-      setRows(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+// ── Tab: Product Revenue ───────────────────────────────────────────────────
 
-  if (error) return <ErrorMsg message={error} />
+function ProductRevenueTab({ data }) {
+  const [page, setPage] = useState(1)
+  const chartData = data.slice(0, 10).map(p => ({
+    name: p.prodcode,
+    revenue: parseFloat(p.totalrevenue || 0),
+  }))
+  const paged = data.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const max = rows[0]?.totalspend ?? 1
+  const totalRevenue = data.reduce((s, p) => s + parseFloat(p.totalrevenue || 0), 0)
+  const totalQty     = data.reduce((s, p) => s + parseFloat(p.totalqtysold || 0), 0)
 
   return (
     <div>
-      <p className="text-sm text-gray-500 mb-5">
-        Top 10 customers ranked by total spend. Click a row to view their detail page.
-      </p>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 border-b border-gray-100">
+        <StatCard
+          accent="bg-blue-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}
+          label="Total Products" value={data.length} sub="in revenue report"
+        />
+        <StatCard
+          accent="bg-green-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+          label="Total Revenue" value={fmt(totalRevenue)} sub="across all products"
+        />
+        <StatCard
+          accent="bg-purple-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9333ea" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}
+          label="Total Qty Sold" value={parseFloat(totalQty).toLocaleString()} sub="units across all products"
+        />
+      </div>
 
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(8)].map((_, i) => (
-            <div key={i} className="animate-pulse flex items-center gap-4 p-4
-                                     bg-white rounded-lg border border-gray-100">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 bg-gray-200 rounded w-40" />
-                <div className="h-2 bg-gray-100 rounded w-full" />
-              </div>
-              <div className="h-3 bg-gray-200 rounded w-20" />
-            </div>
-          ))}
-        </div>
-      ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          <svg className="mx-auto mb-3 text-gray-300" width="40" height="40"
-               viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <p className="text-sm font-medium">No sales recorded.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {rows.map((r, i) => {
-            const pct = Math.round((r.totalspend / max) * 100)
-            const medals = ['🥇', '🥈', '🥉']
-            return (
-              <div
-                key={r.custno}
-                onClick={() => navigate(`/customers/${r.custno}`)}
-                className="flex items-center gap-4 p-4 bg-white rounded-xl border
-                           border-gray-100 hover:border-blue-200 hover:bg-blue-50
-                           cursor-pointer transition shadow-sm group"
-              >
-                {/* Rank */}
-                <div className="w-8 text-center flex-shrink-0">
-                  {i < 3 ? (
-                    <span className="text-xl">{medals[i]}</span>
-                  ) : (
-                    <span className="text-sm font-bold text-gray-400">#{i + 1}</span>
-                  )}
-                </div>
-
-                {/* Name + bar */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <p className="text-sm font-semibold text-gray-900 truncate
-                                  group-hover:text-blue-700 transition">
-                      {r.custname}
-                    </p>
-                    <p className="text-xs text-gray-400 ml-4 flex-shrink-0">
-                      {r.totaltransactions} txn{r.totaltransactions !== 1 ? 's' : ''}
-                    </p>
-                  </div>
-                  {/* Bar chart */}
-                  <div className="w-full bg-gray-100 rounded-full h-2">
-                    <div
-                      className="h-2 rounded-full transition-all"
-                      style={{
-                        width: `${pct}%`,
-                        background: i === 0
-                          ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
-                          : i === 1
-                          ? 'linear-gradient(90deg, #6b7280, #9ca3af)'
-                          : i === 2
-                          ? 'linear-gradient(90deg, #b45309, #d97706)'
-                          : 'linear-gradient(90deg, #2563eb, #60a5fa)',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Spend */}
-                <div className="text-sm font-bold text-gray-800 flex-shrink-0">
-                  {currency(r.totalspend)}
-                </div>
-
-                {/* Arrow */}
-                <svg className="text-gray-300 group-hover:text-blue-500 transition
-                                flex-shrink-0"
-                     width="16" height="16" viewBox="0 0 24 24" fill="none"
-                     stroke="currentColor" strokeWidth="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </div>
-            )
-          })}
+      {/* Chart */}
+      {chartData.length > 0 && (
+        <div className="px-6 pt-6 pb-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Top 10 by Revenue</p>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={chartData} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false}/>
+              <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false}/>
+              <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false}
+                tickFormatter={v => `₱${(v/1000).toFixed(0)}k`}/>
+              <Tooltip
+                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+                formatter={v => [fmt(v), 'Revenue']}/>
+              <Bar dataKey="revenue" radius={[4, 4, 0, 0]}>
+                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       )}
-    </div>
-  )
-}
 
-// ── Product Revenue Tab ───────────────────────────────────────────────────────
-function ProductRevenue() {
-  const [rows, setRows]       = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState(null)
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    try {
-      setLoading(true)
-      setError(null)
-      const data = await getProductRevenue()
-      setRows(data)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (error) return <ErrorMsg message={error} />
-
-  return (
-    <div>
-      <p className="text-sm text-gray-500 mb-4">
-        Read-only breakdown of total quantity sold and revenue per product.
-      </p>
-
-      <div className="bg-white shadow rounded-lg overflow-hidden overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {['Product', 'Total Qty Sold', 'Total Revenue'].map(h => (
-                <th key={h} className="px-6 py-3 text-left text-xs font-medium
-                                        text-gray-500 uppercase tracking-wider">
-                  {h}
-                </th>
-              ))}
+      {/* Table */}
+      <div className="px-6 pb-2 pt-4">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">All Products</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-50 border-y border-gray-100">
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Product Code</th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Description</th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right">Qty Sold</th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest text-right">Revenue</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {loading ? (
-              <RowSkeleton cols={3} />
-            ) : rows.length === 0 ? (
-              <tr>
-                <td colSpan="3" className="px-6 py-16 text-center">
-                  <p className="text-sm text-gray-400 font-medium">
-                    No sales recorded.
-                  </p>
-                </td>
+          <tbody className="divide-y divide-gray-50">
+            {paged.length === 0 ? (
+              <tr><td colSpan="4" className="px-6 py-12 text-center text-sm text-gray-400">No data available</td></tr>
+            ) : paged.map((p, i) => (
+              <tr key={i} className="hover:bg-gray-50/70 transition-colors">
+                <td className="px-6 py-3.5 text-sm font-mono font-medium text-blue-600">{p.prodcode}</td>
+                <td className="px-6 py-3.5 text-sm text-gray-700">{p.description || '—'}</td>
+                <td className="px-6 py-3.5 text-sm text-gray-600 text-right">{parseFloat(p.totalqtysold || 0).toLocaleString()}</td>
+                <td className="px-6 py-3.5 text-sm font-semibold text-green-600 text-right">{fmt(p.totalrevenue)}</td>
               </tr>
-            ) : (
-              rows.map((r, i) => (
-                <tr key={i} className="hover:bg-gray-50 transition">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {r.description}
-                    {r.prodcode && (
-                      <span className="block text-xs text-gray-400 font-mono mt-0.5">
-                        {r.prodcode}
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">
-                    {r.totalqtysold?.toLocaleString() ?? '—'}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-800">
-                    {currency(r.totalrevenue)}
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
-
-      {/* Read-only notice */}
-      <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" strokeWidth="2">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-        This report is read-only. No add, edit, or delete operations are available.
-      </div>
+      <Pagination page={page} total={data.length} pageSize={PAGE_SIZE} onChange={setPage}/>
     </div>
   )
 }
 
-// ── Shared error component ────────────────────────────────────────────────────
-function ErrorMsg({ message }) {
+// ── Tab: Customer Summary ──────────────────────────────────────────────────
+
+function CustomerSummaryTab({ data }) {
+  const [page, setPage]     = useState(1)
+  const [search, setSearch] = useState('')
+  const [sort, setSort]     = useState({ col: 'totalspend', dir: 'desc' })
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim()
+    return data.filter(c =>
+      !q || c.custname?.toLowerCase().includes(q) || c.custno?.toLowerCase().includes(q)
+    )
+  }, [data, search])
+
+  const sorted = useMemo(() => {
+    return [...filtered].sort((a, b) => {
+      const av = parseFloat(a[sort.col] || 0)
+      const bv = parseFloat(b[sort.col] || 0)
+      return sort.dir === 'desc' ? bv - av : av - bv
+    })
+  }, [filtered, sort])
+
+  const paged = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  function toggleSort(col) {
+    setSort(s => s.col === col ? { col, dir: s.dir === 'desc' ? 'asc' : 'desc' } : { col, dir: 'desc' })
+    setPage(1)
+  }
+
+  function SortIcon({ col }) {
+    if (sort.col !== col) return <span className="text-gray-300 ml-1">↕</span>
+    return <span className="text-blue-500 ml-1">{sort.dir === 'desc' ? '↓' : '↑'}</span>
+  }
+
+  const totalSpend = data.reduce((s, c) => s + parseFloat(c.totalspend || 0), 0)
+  const totalTxns  = data.reduce((s, c) => s + parseInt(c.totaltransactions || 0), 0)
+
   return (
-    <div className="bg-red-100 border border-red-400 text-red-700
-                    px-4 py-3 rounded-lg text-sm">
-      Error: {message}
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 border-b border-gray-100">
+        <StatCard
+          accent="bg-blue-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}
+          label="Total Customers" value={data.length} sub="in summary"
+        />
+        <StatCard
+          accent="bg-green-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>}
+          label="Total Revenue" value={fmt(totalSpend)} sub="combined spend"
+        />
+        <StatCard
+          accent="bg-orange-50"
+          icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
+          label="Total Transactions" value={totalTxns.toLocaleString()} sub="across all customers"
+        />
+      </div>
+
+      {/* Search */}
+      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1) }}
+            placeholder="Search customers..."
+            className="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 pl-9 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"/>
+        </div>
+        <span className="text-xs text-gray-400">{filtered.length} of {data.length} customers</span>
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="bg-gray-50 border-y border-gray-100">
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Customer</th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest cursor-pointer select-none hover:text-gray-600 text-right"
+                onClick={() => toggleSort('totaltransactions')}>
+                Transactions <SortIcon col="totaltransactions"/>
+              </th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest cursor-pointer select-none hover:text-gray-600 text-right"
+                onClick={() => toggleSort('totalspend')}>
+                Total Spend <SortIcon col="totalspend"/>
+              </th>
+              <th className="px-6 py-3 text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Last Sale</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {paged.length === 0 ? (
+              <tr><td colSpan="4" className="px-6 py-12 text-center text-sm text-gray-400">No customers found</td></tr>
+            ) : paged.map((c, i) => {
+              const initials = (c.custname || '??').slice(0, 2).toUpperCase()
+              return (
+                <tr key={i} className="hover:bg-gray-50/70 transition-colors">
+                  <td className="px-6 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{c.custname}</p>
+                        <p className="text-[11px] text-gray-400">{c.custno}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-3.5 text-sm text-gray-600 text-right">{c.totaltransactions || 0}</td>
+                  <td className="px-6 py-3.5 text-sm font-semibold text-green-600 text-right">{fmt(c.totalspend)}</td>
+                  <td className="px-6 py-3.5 text-sm text-gray-500">
+                    {c.lastsaledate ? new Date(c.lastsaledate).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+      <Pagination page={page} total={filtered.length} pageSize={PAGE_SIZE} onChange={setPage}/>
     </div>
   )
 }
 
-// ── Main Reports page with tabs ───────────────────────────────────────────────
-const TABS = [
-  { key: 'summary',  label: 'Customer Sales Summary' },
-  { key: 'top',      label: 'Top Customers' },
-  { key: 'products', label: 'Product Revenue' },
-]
+// ── Tab: Top 10 Customers ──────────────────────────────────────────────────
 
-function ReportsContent() {
-  const [activeTab, setActiveTab] = useState('summary')
+function TopCustomersTab({ data }) {
+  // Sort by totalspend descending so customers with ₱0 go to the bottom
+  const sorted = [...data].sort((a, b) => parseFloat(b.totalspend || 0) - parseFloat(a.totalspend || 0))
+
+  const chartData = sorted.map(c => ({
+    name: c.custname?.split(' ')[0] ?? c.custno,
+    spend: parseFloat(c.totalspend || 0),
+  }))
+
+  const medals = ['🥇', '🥈', '🥉']
 
   return (
-    <div className="p-4 md:p-8">
-
-      {/* ── Page header ── */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Sales and revenue insights across customers and products.
-        </p>
-      </div>
-
-      {/* ── Tabs ── */}
-      <div className="flex gap-1 mb-6 bg-gray-100 p-1 rounded-xl w-fit
-                      overflow-x-auto flex-wrap">
-        {TABS.map(t => (
-          <button
-            key={t.key}
-            onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg transition
-                        whitespace-nowrap ${
-              activeTab === t.key
-                ? 'bg-white text-blue-700 shadow-sm'
-                : 'text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            {t.label}
-          </button>
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-6 border-b border-gray-100">
+        {sorted.slice(0, 3).map((c, i) => (
+          <StatCard key={i}
+            accent={i === 0 ? 'bg-yellow-50' : i === 1 ? 'bg-gray-100' : 'bg-orange-50'}
+            icon={<span className="text-xl">{medals[i]}</span>}
+            label={`#${i + 1} Customer`}
+            value={c.custname}
+            sub={fmt(c.totalspend)}
+          />
         ))}
       </div>
 
-      {/* ── Tab content ── */}
-      {activeTab === 'summary'  && <CustomerSalesSummary />}
-      {activeTab === 'top'      && <TopCustomers />}
-      {activeTab === 'products' && <ProductRevenue />}
+      {/* Chart */}
+      {chartData.length > 0 && (
+        <div className="px-6 pt-6 pb-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">Spend Comparison</p>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false}/>
+              <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false}
+                tickFormatter={v => `₱${(v/1000).toFixed(0)}k`}/>
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} axisLine={false} tickLine={false} width={80}/>
+              <Tooltip
+                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', fontSize: 12 }}
+                formatter={v => [fmt(v), 'Total Spend']}/>
+              <Bar dataKey="spend" radius={[0, 4, 4, 0]}>
+                {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Leaderboard */}
+      <div className="px-6 pt-4 pb-6 space-y-2">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">Leaderboard</p>
+        {sorted.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">No data available</p>
+        ) : sorted.map((c, i) => (
+          <div key={i} className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-xl hover:border-blue-100 hover:shadow-sm transition-all">
+            <div className="w-9 flex-shrink-0 text-center">
+              {i < 3
+                ? <span className="text-2xl">{medals[i]}</span>
+                : <span className="text-sm font-bold text-gray-400">#{i + 1}</span>}
+            </div>
+            <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center text-[11px] font-bold flex-shrink-0">
+              {(c.custname || '??').slice(0, 2).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">{c.custname}</p>
+              <p className="text-[11px] text-gray-400">{c.totaltransactions} transactions</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className="text-base font-bold text-green-600">{fmt(c.totalspend)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Main Reports Component ─────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'product-revenue',  label: 'Product Revenue' },
+  { id: 'customer-summary', label: 'Customer Summary' },
+  { id: 'top-customers',    label: 'Top 10 Customers' },
+]
+
+function ReportsContent() {
+  const [activeTab, setActiveTab]         = useState('product-revenue')
+  const [productRevenue, setProductRevenue] = useState([])
+  const [customerSummary, setCustomerSummary] = useState([])
+  const [topCustomers, setTopCustomers]   = useState([])
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
+
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true)
+        const [prod, cust, top] = await Promise.all([
+          getProductRevenue(),
+          getCustomerSalesSummary(),
+          getTopCustomers(),
+        ])
+        setProductRevenue(prod)
+        setCustomerSummary(cust)
+        setTopCustomers(top)
+      } catch (err) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
+
+  if (loading) return <LoadingSpinner message="Loading reports..." />
+
+  if (error) return (
+    <div className="p-8">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
+        Error loading reports: {error}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Page header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">CMS Reports</h1>
+        <p className="text-sm text-gray-500 mt-1">Business insights and analytics for HOPE, Inc.</p>
+      </div>
+
+      {/* Card */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-100 bg-gray-50/50">
+          {TABS.map(tab => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+              className={`px-5 py-3.5 text-sm font-medium transition-all border-b-2 cursor-pointer ${
+                activeTab === tab.id
+                  ? 'border-blue-600 text-blue-700 bg-white'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        {activeTab === 'product-revenue'  && <ProductRevenueTab  data={productRevenue}  />}
+        {activeTab === 'customer-summary' && <CustomerSummaryTab data={customerSummary} />}
+        {activeTab === 'top-customers'    && <TopCustomersTab    data={topCustomers}    />}
+      </div>
     </div>
   )
 }

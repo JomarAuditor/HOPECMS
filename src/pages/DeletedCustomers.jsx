@@ -1,14 +1,106 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useRights } from '../context/UserRightsContext'
 import { getCustomers, recoverCustomer } from '../services/customerService'
 import LoadingSpinner from '../components/LoadingSpinner'
 import ErrorBoundary from '../components/ErrorBoundary'
 
-// M2 spec: ADMIN/SUPERADMIN only — sidebar link gating is already handled
-// in AppShell.jsx via isAdmin() (M4 spec). Route itself is blocked by
-// DeletedCustomersGuard.jsx (M1 PR-04 spec) which redirects USER to /customers.
-// This component can safely assume the viewer is ADMIN or SUPERADMIN.
+// Fixed-position tooltip stamp — never clipped by overflow-hidden
+function StampCell({ stamp }) {
+  const [show, setShow] = useState(false)
+  const [pos, setPos]   = useState({ top: 0, left: 0, alignRight: false })
+  const ref             = useRef(null)
+
+  if (!stamp) return <span className="text-gray-300 text-xs">—</span>
+
+  const parts  = stamp.match(/^(\S+)\s+by\s+(.+)\s+on\s+(\S+)$/)
+  const action = parts ? parts[1] : stamp
+  const email  = parts ? parts[2] : ''
+  const date   = parts ? parts[3] : ''
+  const short  = parts ? `${parts[1]} · ${parts[3]}` : stamp
+
+  const actionColor = {
+    CREATED:     'text-green-400',
+    UPDATED:     'text-blue-400',
+    DEACTIVATED: 'text-red-400',
+    REACTIVATED: 'text-emerald-400',
+  }[action] ?? 'text-gray-400'
+
+  function handleMouseEnter() {
+    if (ref.current) {
+      const rect = ref.current.getBoundingClientRect()
+      const alignRight = rect.left > window.innerWidth / 2
+      setPos({
+        top: rect.top - 12,
+        left: alignRight ? 'auto' : rect.left,
+        right: alignRight ? window.innerWidth - rect.right : 'auto',
+        alignRight,
+      })
+    }
+    setShow(true)
+  }
+
+  return (
+    <>
+      <span
+        ref={ref}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={() => setShow(false)}
+        className="block text-xs text-gray-500 italic cursor-default truncate max-w-[130px]"
+      >
+        {short}
+      </span>
+      {show && (
+        <div
+          className="fixed z-[9999] pointer-events-none -translate-y-full"
+          style={{
+            top: pos.top,
+            ...(pos.alignRight ? { right: pos.right } : { left: pos.left }),
+          }}
+        >
+          <div className="bg-gray-950 rounded-xl shadow-2xl border border-white/10 overflow-hidden min-w-55">
+            <div className={`h-1 w-full ${
+              action === 'CREATED'     ? 'bg-green-500' :
+              action === 'UPDATED'     ? 'bg-blue-500' :
+              action === 'DEACTIVATED' ? 'bg-red-500' :
+              action === 'REACTIVATED' ? 'bg-emerald-500' : 'bg-gray-500'
+            }`} />
+            <div className="px-3.5 py-3">
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${actionColor}`}>
+                  {action}
+                </span>
+              </div>
+              {email && (
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <span className="text-[11px] text-gray-300">{email}</span>
+                </div>
+              )}
+              {date && (
+                <div className="flex items-center gap-1.5">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span className="text-[11px] text-gray-300">{date}</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <div className={`absolute top-full border-4 border-transparent border-t-gray-950 ${
+            pos.alignRight ? 'right-4' : 'left-4'
+          }`} />
+        </div>
+      )}
+    </>
+  )
+}
 
 function DeletedCustomersContent() {
   const { currentUser } = useAuth()
@@ -97,7 +189,7 @@ function DeletedCustomersContent() {
       )}
 
       {/* ── Table ── */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -118,10 +210,7 @@ function DeletedCustomersContent() {
                 Pay Term
               </th>
               {/* Stamp always shown here — page is ADMIN/SUPERADMIN only (M2 spec) */}
-              <th className="px-6 py-3 text-left text-xs font-medium
-                              text-gray-500 uppercase tracking-wider">
-                Stamp
-              </th>
+              <th className="w-[140px] px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-widest">Stamp</th>
               <th className="px-6 py-3 text-left text-xs font-medium
                               text-gray-500 uppercase tracking-wider">
                 Action
@@ -160,17 +249,16 @@ function DeletedCustomersContent() {
                       {customer.payterm}
                     </span>
                   </td>
-                  {/* Stamp shown — ADMIN/SUPERADMIN only page (M2 + M4 spec) */}
-                  <td className="px-6 py-4 whitespace-nowrap text-sm
-                                  text-gray-400 italic">
-                    {customer.stamp ?? '—'}
+                  {/* Stamp — fixed tooltip, never clipped */}
+                  <td className="w-[140px] px-4 py-4">
+                    <StampCell stamp={customer.stamp} />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => setRecoverTarget(customer)}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                                  text-xs font-semibold text-green-700 bg-green-50
-                                 hover:bg-green-100 transition"
+                                 hover:bg-green-100 transition cursor-pointer active:scale-95"
                     >
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                            stroke="currentColor" strokeWidth="2">
@@ -221,7 +309,7 @@ function DeletedCustomersContent() {
                 onClick={() => setRecoverTarget(null)}
                 className="px-4 py-2 text-sm font-semibold text-gray-600
                            border border-gray-300 rounded-lg hover:bg-gray-50
-                           transition"
+                           transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -229,7 +317,7 @@ function DeletedCustomersContent() {
                 onClick={handleRecover}
                 disabled={recovering}
                 className="px-4 py-2 text-sm font-semibold text-white bg-green-600
-                           rounded-lg hover:bg-green-700 transition disabled:opacity-60"
+                           rounded-lg hover:bg-green-700 transition disabled:opacity-60 cursor-pointer"
               >
                 {recovering ? 'Recovering...' : 'Yes, Recover'}
               </button>

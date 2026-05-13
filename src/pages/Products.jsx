@@ -116,7 +116,7 @@ function ProductsContent() {
       </p>
 
       {/* ── Table ── */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div className="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -174,8 +174,7 @@ function ProductsContent() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
                       onClick={() => handleViewPriceHistory(product.prodcode)}
-                      className="text-blue-600 hover:text-blue-800
-                                 font-medium transition"
+                      className="text-blue-600 hover:text-blue-800 font-medium transition cursor-pointer hover:underline"
                     >
                       View History
                     </button>
@@ -210,7 +209,7 @@ function ProductsContent() {
               </div>
               <button
                 onClick={() => setSelectedProduct(null)}
-                className="text-gray-400 hover:text-gray-600 transition"
+                className="text-gray-400 hover:text-gray-600 transition cursor-pointer p-1 rounded-lg hover:bg-gray-100"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
                      stroke="currentColor" strokeWidth="2">
