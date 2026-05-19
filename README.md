@@ -1,171 +1,59 @@
 # HOPECMS — Hope Inc. Customer Management System
 
-> A web-based Customer Management System built for **Hope, Inc.** to manage customer records, sales transactions, product listings, and pricing history.
+[![Open Source License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![React Version](https://img.shields.io/badge/React-18.x-blue?logo=react&logoColor=white)](https://react.dev/)
+[![Supabase Database](https://img.shields.io/badge/Backend-Supabase%20%2F%20PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![Vitest Testing](https://img.shields.io/badge/Testing-Vitest%20%2B%20RTL-yellow?logo=vitest&logoColor=white)](https://vitest.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+
+An enterprise-grade, open-source Customer Management System (CMS) custom-engineered for small-to-medium enterprises (SMEs) and localized organizations. HOPECMS provides a complete administrative and operational framework featuring a highly normalized relational database architecture, comprehensive role-based access management (RBAC), deep transaction ledger logging, and chronological price auditing.
+
+---
+
+## 🎯 Core Engineering Features
+
+- **Relational Integrity & Normalization:** Built upon a strict Third Normal Form (3NF) relational schema running on PostgreSQL (via Supabase) to guarantee atomic transactions and eliminate data redundancy.
+- **Dynamic Identity & Access Management (IAM):** Implements specialized database-level security modules. Utilizes custom PostgreSQL database triggers (`provisionNewUserTrigger`) to dynamically spin up secure user workspaces upon user registration.
+- **Chronological Price Auditing:** System tracks continuous historical product price fluctuations (`pricehist`) mapping specific effectivity date intervals to accurately preserve ledger history and calculate margins over time.
+- **Robust Automated Testing:** Fully integrated unit and integration testing workflows driven by Vitest and React Testing Library to enforce stable component state rendering and secure page routing.
 
 ---
 
 ## 📐 Entity Relationship Diagram
 
+The database layer handles multi-dimensional data mapping across client records, personnel identifiers, sales ledgers, and changing product inventories.
+
 ![HopeCMS ERD](docs/HOPECMS_ERD.png)
 
-The system is built around the following core entities:
-
-- **customer** — stores customer information including name, address, and payment terms
-- **sales** — records each sales transaction linked to a customer and employee
-- **salesdetail** — line items of each sale, referencing the product and quantity
-- **product** — product catalog with description and unit of measure
-- **pricehist** — historical pricing records per product with effectivity dates
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | [React](https://react.dev/) + [Vite](https://vitejs.dev/) |
-| Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| Backend / Database | [Supabase](https://supabase.com/) (PostgreSQL + Auth + RLS) |
-| Testing | [Vitest](https://vitest.dev/) + [React Testing Library](https://testing-library.com/) |
-| Language | JavaScript / JSX |
-| Package Manager | npm |
-| Version Control | Git + GitHub |
+### Core Schema Architecture:
+- `customer` — Encapsulates client demographic records, structural addressing, and customized payment credit terms.
+- `sales` — High-level transactional table logging primary sales data linked cleanly to transactional employees and customers.
+- `salesdetail` — Precise transactional line-items mapping quantity variants, product IDs, and unit dimensions per sale ledger.
+- `product` — Corporate master directory capturing product descriptions and tracking unique units of measure (UOM).
+- `pricehist` — Temporal database tracker containing changing base prices bound to strict validity date ranges for auditing.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Production Tech Stack
 
-### Prerequisites
-Make sure **Node.js LTS** is installed → https://nodejs.org
+| Architecture Layer | Technology | Operational Purpose |
+|---|---|---|
+| **Frontend UI Engine** | [React](https://react.dev/) + [Vite](https://vitejs.dev/) | High-speed Virtual DOM diffing, declarative component architecture, and lightning-fast build bundling. |
+| **Styling Layer** | [Tailwind CSS](https://tailwindcss.com/) | Atomic utility design pattern ensuring high layout responsiveness and optimal CSS bundle delivery. |
+| **Backend / Cloud DB** | [Supabase](https://supabase.com/) (PostgreSQL) | Enterprise relational management, secure Row-Level Security (RLS) policies, and integrated OAuth engines. |
+| **Testing Harness** | [Vitest](https://vitest.dev/) + [RTL](https://testing-library.com/) | Headless DOM isolation testing allowing rapid assertion verification for protected workflows. |
+| **Language Specs** | JavaScript (ES6+) / SQL | Modern functional patterns mixed with highly procedural database migrations. |
 
-### Clone the repo
+---
+
+## 🚀 Getting Started & Local Sandbox
+
+### System Prerequisites
+Ensure that **Node.js LTS** (Long Term Support) is active on your host system before deployment.
+
+### 1. Environment Initialization
+Clone the repository recursively and enter the project root to install core packages:
 ```bash
-git clone https://github.com/JomarAuditor/HOPECMS.git
+git clone [https://github.com/JomarAuditor/HOPECMS.git](https://github.com/JomarAuditor/HOPECMS.git)
 cd HOPECMS
-```
-
-### Install dependencies
-```bash
 npm install
-```
-
-### Environment Setup
-Create a `.env` file in the root directory and fill in the values from the **pinned message in our GC**:
-```env
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_anon_key
-```
-
-### Run local server
-```bash
-npm run dev
-```
-Open **http://localhost:5173** in your browser.
-
----
-
-## 🧪 Running Tests
-
-Tests are written with **Vitest + React Testing Library**.
-
-Install test dependencies (one time only):
-```bash
-npm install -D vitest @vitest/ui jsdom @testing-library/react @testing-library/jest-dom
-```
-
-Run all tests:
-```bash
-npm run test
-```
-
-Expected results:
-- `authFlows.test.js` — 12 tests (Sprint 1 auth flows)
-- `rightsMatrix.test.js` — 27 tests (3 user types × 9 rights)
-- `functionalLogic.test.js` — 14 tests (view-only, soft-delete, recovery, RLS, stamp)
-
-Test files are in `src/__tests__/`.
-
----
-
-## 🗄️ Database Setup
-
-Run migration files **in this exact order** via **Supabase SQL Editor**:
-
-1. `db/migration/hopeCMSTable.sql` — core tables (customer, sales, salesdetail, product, pricehist)
-2. `db/migration/alterCustomer.sql` — adds record_status and stamp columns to customer
-3. `db/migration/rightsTable.sql` — creates user, module, rights, user_module, usermodule_rights tables
-4. `db/migration/seedModulesAndRights` — seeds 4 modules and 9 rights
-5. `db/migration/seedSuperAdmin.sql` — creates the initial SUPERADMIN account
-6. `db/migration/customerRLS.sql` — RLS policy: USER only sees ACTIVE customers
-7. `db/migration/adminMouduleRLS.sql` — RLS policy: blocks non-SUPERADMIN from admin module
-8. `db/migration/viewOnlyTableRLS.sql` — RLS policy: blocks write calls on Sales, SalesDetail, Product, PriceHistory
-9. `db/migration/salesCustomerSummaryView.sql` — view for sales + customer summary
-10. `db/migration/productCurrentPriceView.sql` — view for product + current price
-11. `db/migration/customerRevenueView.sql` — view for customer revenue report
-12. `db/migration/verifySeeds.sql` — run to verify all seed data is correct
-
----
-
-## 📂 Project Structure
-
-```
-HOPECMS/
-├── src/
-│   ├── __tests__/          # Vitest test files (M5)
-│   │   ├── authFlows.test.js
-│   │   ├── rightsMatrix.test.js
-│   │   ├── functionalLogic.test.js
-│   │   └── setup.js
-│   ├── components/         # ProtectedRoute, AppShell, modals
-│   ├── context/            # AuthContext, UserRightsContext (M4)
-│   ├── lib/                # supabaseClient.js
-│   ├── pages/              # Login, Register, AuthCallback, Customers, etc.
-│   └── services/           # customerService.js
-├── db/
-│   └── migration/          # SQL migration files (M3)
-├── docs/
-│   ├── HOPECMS_ERD.png     # Entity Relationship Diagram (M3)
-│   ├── SPRINT1_LOG.md      # Sprint 1 log (M5)
-│   └── SPRINT2_LOG.md      # Sprint 2 log (M5)
-└── README.md
-```
-
----
-
-## 🌿 Branching Strategy
-
-| Branch | Description |
-|---|---|
-| `main` | Production-ready — **Locked** |
-| `dev` | Main integration branch — **Locked** (PR Required) |
-| `feat/*` | Feature development branches |
-| `db/*` | Database-related branches |
-| `test/*` | QA / test branches (M5) |
-| `docs/*` | Documentation branches (M5) |
-| `fix/*` | Bug fix branches |
-
----
-
-## ✍️ PR Naming Convention
-
-All pull requests must follow this format for grading:
-
-```
-M#_SPRINT #_PR# - [branch-name] — [brief-description]
-```
-
-**Example:**
-```
-M5_SPRINT 2_PR1 - test/sprint2-rights-27-cases — Full 27-case rights test matrix
-```
-
----
-
-## 👥 Team
-
-| Member | Role |
-|--------|------|
-| M1 | Project Manager / Lead Developer (Jomar Auditor) |
-| M2 | UI Developer (Christian Adlawan)|
-| M3 | Database Specialist (Gabriel Antonino) |
-| M4 | Rights & Authentication Specialist (Trixian Wackyll Granado) |
-| M5 | QA / Documentation Specialist (Wayne Andy Villamor) |
